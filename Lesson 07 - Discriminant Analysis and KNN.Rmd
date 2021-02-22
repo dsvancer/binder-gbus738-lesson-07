@@ -1,11 +1,9 @@
 ---
 title: "Discriminant Analysis and KNN"
 author: "David Svancer"
-
 ---
 
-In this tutorial, we will learn about classification with discriminant analysis and the K-nearest neighbor (KNN) algorithm. KNN can be used for both regression and classification and will serve as our first example for hyperparameter tuning. We will be using two data sets to demonstrate the algorithms in this lesson,  `churn_df` and `home_sales`.
-
+In this tutorial, we will learn about classification with discriminant analysis and the K-nearest neighbor (KNN) algorithm. KNN can be used for both regression and classification and will serve as our first example for hyperparameter tuning. We will be using two data sets to demonstrate the algorithms in this lesson, `churn_df` and `home_sales`.
 
 The code below will load the required packages and data sets for this tutorial. We will need a new package for this lesson, `discrim`. This packages is part of `tidymodels` and serves as a general interface to discriminant analysis algorithms in `R`.
 
@@ -30,13 +28,11 @@ home_sales <- readRDS(url('https://gmubusinessanalytics.netlify.app/data/home_sa
               select(-selling_date)
 ```
 
-
 # Data
 
 We will be working with the `churn_df` and `home_sales` data frames in this lesson.
 
 Take a moment to explore these data sets below.
-
 
 ## Telecommunication Customer Churn
 
@@ -49,31 +45,24 @@ The outcome variable in this data is `churn` which indicates whether the custome
 churn_df
 ```
 
-
 ## Seattle Home Sales
 
+A row in this data frame represents a home that was sold in the Seattle area between 2014 and 2015.
 
-
-A row in this data frame represents a home that was sold in the Seattle area between 2014 and 2015. 
-
-The outcome variable in this data is `selling_price`. 
+The outcome variable in this data is `selling_price`.
 
 ```{r}
 
 home_sales
 ```
 
-
-
 # Linear Discriminant Analysis
 
-Linear discriminant analysis (LDA) is a classification algorithm where the set of predictor variables are assumed to follow a  multivariate normal distribution with a common covariance matrix. As we saw in our lecture, this algorithm produces a linear decision boundary.
+Linear discriminant analysis (LDA) is a classification algorithm where the set of predictor variables are assumed to follow a multivariate normal distribution with a common covariance matrix. As we saw in our lecture, this algorithm produces a linear decision boundary.
 
 Both linear and quadratic discriminant analysis can be specified with the `discrim_regularized()` function from the `discrim` package.
 
 Let's use LDA to predict whether customers will cancel their telecommunications service in the `churn_df` data frame. We will follow our standard machine learning workflow that was introduced in the logistic regression tutorial.
-
-
 
 ## Data Splitting
 
@@ -81,14 +70,12 @@ In this case, our event of interest is `churn == 'yes'`. This is what we would l
 
 The code below shows that `yes` is mapped to the first level of the `churn` variable. Since `todymodels` maps the first level to the positive class in all performance metrics functions, we do not need to recode the levels of this variable.
 
-
 ```{r}
 
 levels(churn_df$churn)
 ```
 
-
-Now we can proceed to split our data with `initial_split()`. 
+Now we can proceed to split our data with `initial_split()`.
 
 ```{r}
 
@@ -102,16 +89,13 @@ churn_training <- churn_split %>% training()
 churn_test <- churn_split %>% testing()
 ```
 
-
 ## Feature Engineering
 
-We have a mixture of numeric and factor predictor variables in our data. We will use `step_dummy()` to convert all factor variables to numeric indicator variables. 
+We have a mixture of numeric and factor predictor variables in our data. We will use `step_dummy()` to convert all factor variables to numeric indicator variables.
 
-It is also standard practice to center and scale our numeric predictors. If needed, we can also adjust for skewness with `step_YeoJohnson()`. 
+It is also standard practice to center and scale our numeric predictors. If needed, we can also adjust for skewness with `step_YeoJohnson()`.
 
 Let's make histograms of our numeric predictors to see if this is needed. We have skewness present in `late_payments`.
-
-
 
 ### Histograms of numeric predictors {.tabset}
 
@@ -125,7 +109,6 @@ ggplot(data = churn_df, mapping = aes(x = monthly_charges)) +
   theme_light()
 ```
 
-
 #### late_payments
 
 ```{r}
@@ -136,20 +119,13 @@ ggplot(data = churn_df, mapping = aes(x = late_payments)) +
   theme_light()
 ```
 
-
-
-
 ### Feature Engineering Recipe
 
 Now we can create a feature engineering recipe for this data. We will train the following transformations on our training data.
 
-
-
-- Remove skewness from numeric predictors
-- Normalize all numeric predictors
-- Create dummy variables for all nominal predictors
-
-
+-   Remove skewness from numeric predictors
+-   Normalize all numeric predictors
+-   Create dummy variables for all nominal predictors
 
 ```{r}
 
@@ -159,11 +135,7 @@ churn_recipe <- recipe(churn ~ ., data = churn_training) %>%
                        step_dummy(all_nominal(), -all_outcomes())
 ```
 
-
-
 Let's check to see if the feature engineering steps have been carried out correctly.
-
-
 
 ```{r}
 
@@ -172,16 +144,13 @@ churn_recipe %>%
   bake(new_data = NULL)
 ```
 
-
-
 ## LDA Model Specification
 
-Linear discriminant analysis is specified with the `discrim_regularized` function. The optional `frac_common_cov` is used to specify an LDA or QDA model. 
+Linear discriminant analysis is specified with the `discrim_regularized` function. The optional `frac_common_cov` is used to specify an LDA or QDA model.
 
 For LDA, we set `frac_common_cov = 1`. This instructs `discrim_regularied` that we are assuming that each class in the response variable has the same variance. This is the core assumption of the LDA model.
 
 FOR QDA, we set `frac_common_cov = 0`, indicating that each class within our response variable has its own class-specific variance.
-
 
 ```{r}
 
@@ -189,7 +158,6 @@ lda_model <- discrim_regularized(frac_common_cov = 1) %>%
              set_engine('klaR') %>% 
              set_mode('classification')
 ```
-
 
 ## Create a Workflow
 
@@ -202,7 +170,6 @@ lda_wf <- workflow() %>%
           add_recipe(churn_recipe)
 ```
 
-
 ## Train and Evaluate With `last_fit()`
 
 Finally we will train our model and estimate performance on our test data set using the `last_fit()` function.
@@ -213,15 +180,12 @@ last_fit_lda <- lda_wf %>%
                 last_fit(split = churn_split)
 ```
 
-
-
 To obtain the metrics on the test set (accuracy and roc_auc by default) we use `collect_metrics()`. Based on area under the ROC curve, our model has a "B".
 
 ```{r}
 
 last_fit_lda %>% collect_metrics()
 ```
-
 
 We can also obtain a data frame with test set results by using the `collect_predictions()` function. In the code below, we call this `lda_predictions`. It contains the estimated probabilities for customers canceling their service, `.pred_yes`, the predicted class of our response variable, `.pred_class`, and the truth, `churn`.
 
@@ -233,8 +197,6 @@ lda_predictions <- last_fit_lda %>%
 lda_predictions
 ```
 
-
-
 We can use this data frame to make an ROC plot by using `roc_curve()` and `autoplot()`.
 
 ```{r}
@@ -244,19 +206,16 @@ lda_predictions %>%
   autoplot()
 ```
 
-
 We can also use the `lda_predictions` results to explore the confusion matrix and other performance metrics, such as the F1 score, on our test data.
-
 
 ### Confusion Matrix
 
-We see that our model made 41 false negatives and 30 false positives. In this case, predicting that a customer will not cancel their service when in fact they do seems like the more costly error. 
+We see that our model made 41 false negatives and 30 false positives. In this case, predicting that a customer will not cancel their service when in fact they do seems like the more costly error.
 
 ```{r}
 
 conf_mat(lda_predictions, truth = churn, estimate = .pred_class)
 ```
-
 
 ### F1 Score
 
@@ -265,18 +224,13 @@ conf_mat(lda_predictions, truth = churn, estimate = .pred_class)
 f_meas(lda_predictions, truth = churn, estimate = .pred_class)
 ```
 
-
-
 # Quadratic Discriminant Analysis
 
 To fit a quadratic discriminant analysis model, we will have to make some minor adjustments to our workflow from the previous section. We have already split our data and trained our feature engineering steps so we only need to create a new QDA model specification with `discrim_regularized()` and a new workflow object.
 
-
-
 ## QDA Model Specification
 
 FOR QDA, we set `frac_common_cov = 0`, indicating that each class within our response variable has its own class-specific variance.
-
 
 ```{r}
 
@@ -285,11 +239,9 @@ qda_model <- discrim_regularized(frac_common_cov = 0) %>%
              set_mode('classification')
 ```
 
-
 ## Create a Workflow
 
 Next we create a QDA workflow object that combines our feature engineering steps from the previous section and our QDA model.
-
 
 ```{r}
 
@@ -297,7 +249,6 @@ qda_wf <- workflow() %>%
           add_model(qda_model) %>% 
           add_recipe(churn_recipe)
 ```
-
 
 ## Train and Evaluate With `last_fit()`
 
@@ -309,38 +260,28 @@ last_fit_qda <- qda_wf %>%
                 last_fit(split = churn_split)
 ```
 
-
-
-Based on the area under the ROC curve, our QDA model had similar performance to our LDA model. Remember that QDA is a more complicated model than LDA since we are estimating more parameters. 
+Based on the area under the ROC curve, our QDA model had similar performance to our LDA model. Remember that QDA is a more complicated model than LDA since we are estimating more parameters.
 
 Since we didn't get any improvement in terms of model performance, it is always recommended to choose the simpler model if we are deciding which one to use in production.
-
-
 
 ```{r}
 
 last_fit_qda %>% collect_metrics()
 ```
 
-
-
 # K-Nearest Neighbor
 
 In this section we will learn how to perform regression and classification using the k-nearest neighbor (KNN) algorithm and hyperparameter tuning with cross validation.
 
-
 ## Classification
 
-We will use KNN to predict whether customers will cancel their service in our `chrun_df` data. To do this, we have to adjust our machine learning workflow by incorporating hyperparameter tuning. 
-
-
+We will use KNN to predict whether customers will cancel their service in our `chrun_df` data. To do this, we have to adjust our machine learning workflow by incorporating hyperparameter tuning.
 
 ### Data Splitting
 
 Since we need to perform hyperparameter tuning, we need to add the extra step of creating cross validation folds from our training data. This is done with the `vfold_cv()` function.
 
 In the code below, we further split our `churn_training` data into folds with `vfold_cv()`. The `v` parameter specifies how many folds to create. In our example below, we are creating 5 folds.
-
 
 ```{r}
 
@@ -351,20 +292,15 @@ set.seed(314)
 churn_folds <- vfold_cv(churn_training, v = 5)
 ```
 
-
 ### Feature Engineering
 
 Since we have already trained our feature engineering steps, we can use the `churn_recipe` in our KNN modeling.
-
 
 ### KNN Model Specification
 
 The `nearest_neighbor()` function from the `parnsip` package serves as a general interface to KNN modeling engines in `R`. It has the following important hyperparameter:
 
-
-- `neighbors`	- A single integer for the number of neighbors to consider (often called K). For the "kknn" engine, a value of 5 is used if neighbors is not specified
-
-
+-   `neighbors` - A single integer for the number of neighbors to consider (often called K). For the "kknn" engine, a value of 5 is used if neighbors is not specified
 
 To determine the optimal value of `neighbors`, we need to perform hyperparameter tuning. Whenever we have a hyperparameter we would like to tune, we must set it equal to `tune()` in our model specification. In the code below, we specify our KNN classification model with the "kknn" engine.
 
@@ -374,7 +310,6 @@ knn_model <- nearest_neighbor(neighbors = tune()) %>%
              set_engine('kknn') %>% 
              set_mode('classification')
 ```
-
 
 ### Creating a Workflow
 
@@ -386,13 +321,11 @@ knn_wf <- workflow() %>%
           add_recipe(churn_recipe)
 ```
 
-
 ### Hyperparameter tuning
 
-Hyperparameter tuning is performed using a grid search algorithm. To do this, we must create a data frame with a column name that matches our hyperparameter, `neighbors` in this case, and values we wish to test. 
+Hyperparameter tuning is performed using a grid search algorithm. To do this, we must create a data frame with a column name that matches our hyperparameter, `neighbors` in this case, and values we wish to test.
 
 In the code below we use the `tibble()` function to create a data frame with values of `neighbors` ranging from 10 to 150. Our goal here is to choose a range of values to test, from small to relatively large numbers of neighbors.
-
 
 ```{r}
 
@@ -400,21 +333,15 @@ In the code below we use the `tibble()` function to create a data frame with val
 k_grid <- tibble(neighbors = c(10, 20, 30, 50, 75, 100, 125, 150))
 ```
 
-
-
 ```{r}
 
 # View grid
 k_grid
 ```
 
-
-
-
 Now that we have a data frame with the values of `neighbors` to test, we can use the `tune_grid()` function to determine the optimal value of our hyperparameter.
 
 The `tune_grid()` function takes a model or workflow object, cross validation folds, and a tuning grid as arguments. It is recommended to use `set.seed()` before hyperparameter tuning so that you can reproduce your results at a later time.
-
 
 ```{r}
 
@@ -426,18 +353,15 @@ knn_tuning <- knn_wf %>%
                          grid = k_grid)
 ```
 
-
 To view the results of our hyperparameter tuning, we can use the `show_best()` function. We must pass the type of performance metric we would like to see into the `show_best()` function.
 
 From the results below, we see that for each value of `neighbors` we specified, `tune_grid()` fit a KNN model with that parameter value 5 times (since we have 5 folds in our cross validation object). The `mean` column in the results below indicates the average value of the performance metric that was obtained
-
 
 ```{r}
 
 ## Show the top 5 best models based on roc_auc metric
 knn_tuning %>% show_best('roc_auc')
 ```
-
 
 We can use the `select_best()` model to select the model from our tuning results that had the best overall performance. In the code below, we specify to select the best performing model based on the `roc_auc` metric. We see that the model with 150 neighbors performed the best.
 
@@ -451,8 +375,6 @@ best_k <- knn_tuning %>%
 best_k
 ```
 
-
-
 The last step is to use `finalize_workflow()` to add our optimal model to our workflow object.
 
 ```{r}
@@ -462,19 +384,14 @@ final_knn_wf <- knn_wf %>%
                 finalize_workflow(best_k)
 ```
 
-
-
-
 ### Train and Evaluate With `last_fit()`
 
 After we have tuned our hyperparameter, `neighbors`, and finalized our workflow object with the optimal model, we perform the same last steps as before. We will train our model and estimate performance on our test data set using the `last_fit()` function.
-
 
 ```{r}
 last_fit_knn <- final_knn_wf %>% 
                 last_fit(split = churn_split)
 ```
-
 
 Based on area under the ROC curve, our model has a "B-" and performs slightly worse than LDA and QDA.
 
@@ -483,12 +400,9 @@ Based on area under the ROC curve, our model has a "B-" and performs slightly wo
 last_fit_knn %>% collect_metrics()
 ```
 
-
-
-### ROC Curve 
+### ROC Curve
 
 Let's also have a look at our ROC curve and confusion matrix.
-
 
 ```{r}
 
@@ -497,9 +411,6 @@ knn_predictions <- last_fit_knn %>%
 
 knn_predictions
 ```
-
-
-
 
 We can use this data frame to make an ROC plot by using `roc_curve()` and `autoplot()`.
 
@@ -510,7 +421,6 @@ knn_predictions %>%
   autoplot()
 ```
 
-
 ### Confusion Matrix
 
 We see that our model made 42 false negatives and 37 false positives.
@@ -520,11 +430,9 @@ We see that our model made 42 false negatives and 37 false positives.
 conf_mat(knn_predictions, truth = churn, estimate = .pred_class)
 ```
 
-
 ## Regression
 
 In this final section, we will demonstrate a complete machine learning workflow that incorporates hyperparameter tuning. We will use KNN to predict the selling price of homes using the `home_sales` data.
-
 
 ### Data Splitting
 
@@ -549,7 +457,6 @@ homes_test <- homes_split %>%
 ## Cross Validation folds
 homes_folds <- vfold_cv(homes_training, v = 5)
 ```
-
 
 ### Feature Engineering
 
@@ -576,11 +483,9 @@ homes_recipe %>%
   bake(new_data = homes_test)
 ```
 
-
 ### KNN Regression Model Specification
 
 Next, we specify our KNN regression model with `nearest_neighbor()`. We set `neighbors` to `tune()` for hyperparameter tuning and make sure to set the mode to **regression**.
-
 
 ```{r}
 
@@ -589,11 +494,9 @@ knn_reg <- nearest_neighbor(neighbors = tune()) %>%
             set_mode('regression')
 ```
 
-
 ### Create a Workflow
 
 Next, we combine our model and recipe into a workflow object.
-
 
 ```{r}
 
@@ -601,7 +504,6 @@ knn_reg_wf <- workflow() %>%
               add_model(knn_reg) %>% 
               add_recipe(homes_recipe)
 ```
-
 
 ### Hyperparameter tuning
 
@@ -613,18 +515,15 @@ Let's test the same values of `neighbors` as before.
 k_grid_reg <- tibble(neighbors = c(10, 20, 30, 50, 75, 100, 125, 150))
 ```
 
-
 ```{r}
 
 # View grid
 k_grid_reg
 ```
 
-
 Now that we have a data frame with the values of `neighbors` to test, we can use the `tune_grid()` function to determine the optimal value of our hyperparameter.
 
 The `tune_grid()` function takes a model or workflow object, cross validation folds, and a tuning grid as arguments. It is recommended to use `set.seed()` before hyperparameter tuning so that you can reproduce your results at a later time.
-
 
 ```{r}
 
@@ -636,20 +535,13 @@ knn_reg_tuning <- knn_reg_wf %>%
                             grid = k_grid_reg)
 ```
 
-
-
-
-Since we are fitting a regression model, the performance metrics of interest include `rsq` and `rmse`. Let's use `show_best()` to display the best performing model based on R<sup>2</sup> 
-
-
+Since we are fitting a regression model, the performance metrics of interest include `rsq` and `rmse`. Let's use `show_best()` to display the best performing model based on R<sup>2</sup>
 
 ```{r}
 
 ## Show the top 5 best models based on rsq metric
 knn_reg_tuning %>% show_best('rsq')
 ```
-
-
 
 We can use the `select_best()` model to select the model from our tuning results that had the best overall performance. In the code below, we specify to select the best performing model based on the `rsq` metric. We see that the model with 20 neighbors performed the best.
 
@@ -663,9 +555,6 @@ best_k_reg <- knn_reg_tuning %>%
 best_k_reg
 ```
 
-
-
-
 The last step is to use `finalize_workflow()` to add our optimal model to our workflow object.
 
 ```{r}
@@ -675,7 +564,6 @@ The last step is to use `finalize_workflow()` to add our optimal model to our wo
 final_knn_reg_wf <- knn_reg_wf %>% 
                     finalize_workflow(best_k_reg)
 ```
-
 
 ### Train and Evaluate With `last_fit()`
 
@@ -687,7 +575,6 @@ homes_knn_fit <- final_knn_reg_wf %>%
                  last_fit(split = homes_split)
 ```
 
-
 To obtain the performance metrics and predictions on the test set, we use the `collect_metrics()` and `collect_predictions()` functions on our `homes_knn_fit` object.
 
 ```{r}
@@ -695,7 +582,6 @@ To obtain the performance metrics and predictions on the test set, we use the `c
 # Obtain performance metrics on test data
 homes_knn_fit %>% collect_metrics()
 ```
-
 
 We can save the test set predictions by using the `collect_predictions()` function. This function returns a data frame which will have the response variables values from the test set and a column named `.pred` with the model predictions.
 
@@ -709,12 +595,9 @@ homes_knn_results <- homes_knn_fit %>%
 homes_knn_results
 ```
 
-
-### R2 Plot 
+### R2 Plot
 
 Finally, let's use the `homes_knn_results` data frame to make an R2 plot to visualize our model performance on the test data set. The `coord_obs_pred()` function will set the x and y axis scales to be identical and the `scale_*_continuous()` functions convert the axis labels to comma format. This will make the plot easier to interpret.
-
-
 
 ```{r}
 
@@ -729,4 +612,3 @@ ggplot(data = homes_knn_results,
        x = 'Predicted Selling Price',
        y = 'Actual Selling Price')
 ```
-

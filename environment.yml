@@ -1,0 +1,7 @@
+channels:
+  - conda-forge
+dependencies:
+  - r-base=4.0.2
+  - r-tidymodels
+  - r-discrim
+  - r-klaR

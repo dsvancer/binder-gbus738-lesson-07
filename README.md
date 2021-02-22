@@ -1,4 +1,4 @@
-# RStudio Binder Environment For Lesson 06
+# RStudio Binder Environment For Lesson 07
 
 This repository hosts the source code for the lesson 7 R tutorial at [https://gmubusinessanalytics.netlify.app/lesson-07-r-tutorial.html](https://gmubusinessanalytics.netlify.app/lesson-07-r-tutorial.html)
 
